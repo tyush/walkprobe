@@ -26,6 +26,7 @@ public class ScanRunnable implements Runnable {
     private int cameraTextureName;
     private Session session;
     public short lastDepth = 0;
+    public int intensity = 0;
 
     public ScanRunnable(ScannerActivity activity, Session session, Handler recurser, int cameraTextureName) {
         this.activity = activity;
@@ -49,11 +50,12 @@ public class ScanRunnable implements Runnable {
             int center_index = depthPlane.getRowStride() * ((depthImage.getHeight() / 2) - 1) + depthImage.getWidth() / 2;
             ShortBuffer buffer = depthPlane.getBuffer().order(ByteOrder.nativeOrder()).asShortBuffer();
             Log.println(Log.INFO, "scan_data", "middle is " + buffer.get(center_index) + "mm away");
-            if(buffer.get(center_index) != 0){
+            if(buffer.get(center_index) != 0) {
                 vibrator.cancel();
                 this.lastDepth = buffer.get(center_index);
-                vibrator.vibrate(VibrationEffect.createOneShot(400L, mmToIntensity(buffer.get(center_index))));
+                this.intensity = mmToIntensity(this.lastDepth);
             }
+            vibrator.vibrate(VibrationEffect.createOneShot(400L, mmToIntensity(lastDepth)));
         } catch (NotYetAvailableException e) {
             // ok
         } catch (CameraNotAvailableException e) {
@@ -67,25 +69,6 @@ public class ScanRunnable implements Runnable {
     }
 
     public static int mmToIntensity(short mm) {
-        if(mm > 30000) {
-            return 10;
-        } else if(mm > 20000) {
-            return 20;
-        } else if(mm > 15000) {
-            return 40;
-        } else if(mm > 12500) {
-            return 60;
-        } else if(mm > 7500) {
-            return 75;
-        } else if(mm > 5000) {
-            return 125;
-        } else if(mm > 2000) {
-            return 150;
-        } else if(mm > 1000) {
-            return 200;
-        } else if(mm > 0) {
-            return 255;
-        }
-        return 1;
+        return (int) Math.min(Math.max((Math.pow((30000.0/ (double) mm), 1.0/8.0) * 255.0 - 255.0), 1), 250);
     }
 }
